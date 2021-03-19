@@ -41,3 +41,37 @@ NHL has their own public-accessible api for this info. I will be using their end
 https://gitlab.com/dword4/nhlapi
 https://www.kevinsidwar.com/iot/2017/7/1/the-undocumented-nhl-stats-api
 https://github.com/erunion/sport-api-specifications/tree/master/nhl
+
+ENDPOINTS FOR EACH STAT
+FIGHT STATS
+-PIM by player
+https://statsapi.web.nhl.com/api/v1/people/:ID/stats?stats=statsSingleSeason&season=20202021
+-PIM by game/matchup
+https://statsapi.web.nhl.com/api/v1/game/:ID/boxscore
+-PIM by team
+-Hits (Can combine with PIM?)
+https://statsapi.web.nhl.com/api/v1/people/:ID/stats?stats=statsSingleSeason&season=20202021
+-Drop the gloves (5 min fighting penalty) & Next time 2 players/teams face
+https://statsapi.web.nhl.com/api/v1/game/:ID/feed/live (Search for "secondaryType" : "Fighting")
+-Other unusual incidents (majors, game misconducts, injuries, etc) & Next time 2 players/teams face
+https://statsapi.web.nhl.com/api/v1/game/:ID/feed/live (Search for "penaltySeverity" : "Major" but exclude Fighting types)
+
+SCORING STATS BY PLAYER
+All by League/Division/Team
+Show games played?
+-Goals
+-Assists
+-Points
+-PP Goals
+-SH Goals
+-Plus/Minus
+https://statsapi.web.nhl.com/api/v1/people/:ID/stats?stats=statsSingleSeason&season=20202021 (Applies to all in this category)
+
+GOALIE STATS
+-Save %
+-GAA
+-Shutouts
+-# of times pulled (They do have this stat but it always reads false even if the goalie was pulled)
+-Most minutes without a goal (Not finding a stat for this)
+https://statsapi.web.nhl.com/api/v1/people/8471695/stats?stats=statsSingleSeason&season=20202021
+(Applies to all except last two. # of times pulled could possibly be calculated using 'games started' and 'games'. No 'games ended' info.)
