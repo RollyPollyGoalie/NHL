@@ -1,11 +1,11 @@
 # NHL
-UPDATE - 05/11/21
-The pages 'Fights', 'Majors', and 'Shot Types' will return 404 errors. They are ready to go on the backend but the React hasn't been set up for them yet.
+UPDATE - 05/11/21  
+The pages 'Fights', 'Majors', and 'Shot Types' will return 404 errors. They are ready to go on the backend but the React hasn't been set up for them yet.  
 
-TO GET SITE RUNNING:
-Type 'npm i' while located in the frontend directory, and again while in the backend directory.
-Populate database and start server by typing 'node server.js'. Wait for the database to finish populating. This takes 4 to 5 minutes and the console will show the database rows as they are being created.
-In a separate terminal window, type 'npm start' which will start the React App server and open a browser window with the site.
+TO GET SITE RUNNING:  
+Type 'npm i' while located in the frontend directory, and again while in the backend directory.  
+Populate database and start server by typing 'node server.js'. Wait for the database to finish populating. This takes 4 to 5 minutes and the console will show the database rows as they are being created.  
+In a separate terminal window, type 'npm start' which will start the React App server and open a browser window with the site.  
 
 
 Site that live tracks themed NHL stats  
