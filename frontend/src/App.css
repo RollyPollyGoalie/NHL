@@ -1,38 +1,89 @@
-.App {
-  text-align: center;
+* { margin: 0; padding: 0; border: none; }
+
+body {
+    background-color: lightgreen;
 }
 
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
+#root {
+    background-color: lightcoral;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
+.app {
+    background-color: lightskyblue;
 }
 
-.App-header {
-  background-color: #282c34;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: white;
+.homePage {
+    background-color: white;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
 }
 
-.App-link {
-  color: #61dafb;
+
+.navBar {
+
+    width: 100%;
+    background-color: lavenderblush;
+    text-align: center;
+    text-transform: uppercase;
 }
 
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+.title {
+    background-color: maroon;
 }
+
+h1 {
+    text-align: center;
+    font-size: 5em;
+    color: white;
+}
+
+.menu {
+    width: 100%;
+    height: 3em;
+    background-color: tomato;
+    margin-bottom: 7em;
+}
+
+.menuHeaders {
+    display: flex;
+    background-color: yellow;
+    align-items: stretch;
+    height: 100%;
+}
+
+.menuHeader {
+    flex: 1;
+}
+
+.menuHeader:hover {
+    background-color: rgb(255, 255, 176);
+}
+
+.menuHeader:hover .dropDown {
+    display: block;
+}
+
+ul {
+    list-style: none;
+    display: flex;
+    align-items: center;
+}
+
+.dropDownItem {
+    text-align: left;
+}
+.dropDownItem:hover {
+    background-color: rgb(171, 130, 238);
+}
+
+.dropDown {
+    display: none;
+    width: 100%;
+}
+
+.dropDown li {
+    background-color: violet;
+}
+

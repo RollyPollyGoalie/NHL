@@ -8,7 +8,8 @@ FIGHT STATS
 -PIM by player  
 -PIM by game/matchup  
 -PIM by team  
--Hits (Can combine with PIM?)  
+-Hits by player
+-Hits by team  
 -Drop the gloves (5 min fighting penalty) & Next time 2 players/teams face  
 -Other unusual incidents (majors, game misconducts, injuries, etc) & Next time 2 players/teams face  
 
