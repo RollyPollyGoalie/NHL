@@ -1,8 +1,3 @@
-// SUMMARY OF TABLES CREATED BY THIS FILE
-// Teams: ID, Name, PIM, Hits - A row for each team's id (ex: ), full name (ex: New York Rangers), penalty minute and hit totals for the 2020/2021 season so far.
-// Game_Schedule: game_id, date, status, data, Home_Team_ID, Home_Team_PIM, Home_Team_Hits, Away_Team_ID, Away_Team_PIM, Away_Team_Hits - A row for each game's id (ex: ), date (ex: ), status (ex: Final, Preview, Live), a string containing the entire Json object returned by calling the statsByGame NHL API, and the home and away teams' ids, penalty minute totals, and hit totals.
-// 
-
 const sqlite3 = require('sqlite3');
 const nhlapi = require('./nhlapi.js');
 // npm add-on to sqlite3 that allows usage of Promises and Async/Await
@@ -16,39 +11,40 @@ async function openDB() {
     });
 }
 
-// function intersect(a, b) {
-//     return a.filter(Set.prototype.has, new Set(b));
-// }
 
-// let db;
-// openDB().then( async dbConn => {
-//     db = dbConn;
-//     populateSkaterTable(db);
+// openDB().then( async db => {
+//     let checkingDB = await db.all(`SELECT name FROM sqlite_master WHERE type='table' AND name='Hello';`);
+//     console.log('checkingDB');
+//     console.log(checkingDB);
 // });
 
 // Calls NHL API for a list of all NHL teams. Makes an array of individual teams. Drops/creates Teams table. Inserts a row for each team with id and full name (ex. New Jersey Devils). Also creates empty columns for team hits and pim.
 // DOES NOT NEED TO BE UPDATED/RUN WHEN STARTING THE SERVER
 async function initialTeamDatabase(db) {
-    let allTeamsJson = await nhlapi.allTeams();
-    const teamsArray = allTeamsJson.teams;
-    await db.run(`DROP TABLE IF EXISTS Teams;`);
-    await db.run(`CREATE TABLE IF NOT EXISTS Teams (
-        ID INTEGER PRIMARY KEY,
-        Name TEXT NOT NULL,
-        PIM INTEGER,
-        Hits INTEGER
-    ) WITHOUT ROWID;`
-    );
-    for(i = 0; i < teamsArray.length; i++) {
-        await db.run(`INSERT INTO Teams (ID, Name)
-            VALUES ($id, $name);`, {
-                $id: teamsArray[i].id,
-                $name: teamsArray[i].name
-            }
-        );
-        console.log(i);
+    let tableCount = await db.all(`SELECT name FROM sqlite_master WHERE type='table' AND NAME='Teams';`);
+    if (tableCount.length) {
+        return;
     }
-    console.log("initialTeamDatabase Finished");
+    let allTeamsJson = await nhlapi.allTeams();
+        const teamsArray = allTeamsJson.teams;
+        // await db.run(`DROP TABLE IF EXISTS Teams;`);
+        await db.run(`CREATE TABLE IF NOT EXISTS Teams (
+            ID INTEGER PRIMARY KEY,
+            Name TEXT NOT NULL,
+            PIM INTEGER,
+            Hits INTEGER
+        ) WITHOUT ROWID;`
+        );
+        for(i = 0; i < teamsArray.length; i++) {
+            await db.run(`INSERT INTO Teams (ID, Name)
+                VALUES ($id, $name);`, {
+                    $id: teamsArray[i].id,
+                    $name: teamsArray[i].name
+                }
+            );
+            console.log(i);
+        }
+        console.log("initialTeamDatabase Finished");
 }
 
 
@@ -56,7 +52,11 @@ async function initialTeamDatabase(db) {
 // Needs to be updated/run with every server startup.
 // Populates table successfully but terminal says Database Locked.
 async function createGameTable(db) {
-    await db.run(`DROP TABLE IF EXISTS Game_Schedule;`);
+    let tableCount = await db.all(`SELECT name FROM sqlite_master WHERE type='table' AND name='Game_Schedule';`);
+    if (tableCount.length) {
+        return;
+    }
+    // await db.run(`DROP TABLE IF EXISTS Game_Schedule;`);
     await db.run(`CREATE TABLE IF NOT EXISTS Game_Schedule (
         game_id INTEGER PRIMARY KEY,
         date TEXT NOT NULL,
@@ -132,7 +132,7 @@ async function createTeamData(db) {
 
 // Makes an array of team ids from Teams table. For each id, extracts sums of their pim and hit totals for the season from Game_Schedule table. Inserts totals into Teams table.
 async function combineTeamData(db){
-    const rows = await db.all(`SELECT ID FROM Teams;`);
+    const rows = await db.all(`SELECT ID FROM Teams WHERE PIM IS NULL;`);
     for (i = 0; i < rows.length; i++) {
         const htpRows = await db.all(`SELECT SUM(Home_Team_PIM) AS htpim FROM Game_Schedule WHERE Home_Team_ID = ${rows[i].ID};`);
         const hthRows = await db.all(`SELECT SUM(Home_Team_Hits) AS hthits FROM Game_Schedule WHERE Home_Team_ID = ${rows[i].ID};`);
@@ -154,7 +154,8 @@ async function combineTeamData(db){
 
 // Drops/Creates the MajorPenalties table. Makes an array of parsed json data objects from Game_Schedule. Extracts all Major Penalties (more than 5 min) and inserts into the MajorPenalties table.
 async function createPenaltyData(db) {
-    await db.run(`DROP TABLE IF EXISTS MajorPenalties;`);
+    // await db.run(`DROP TABLE IF EXISTS MajorPenalties;`);
+    console.log('before create table');
     await db.run(`CREATE TABLE IF NOT EXISTS MajorPenalties (
         Game_ID INTEGER,
         Player_One_ID INTEGER,
@@ -168,7 +169,13 @@ async function createPenaltyData(db) {
         Minutes INTEGER,
         Description TEXT
     );`);
-    const rows = await db.all(`SELECT game_id, data FROM Game_Schedule WHERE data IS NOT NULL;`);
+    console.log('before select statements');
+    let row = await db.get(`SELECT date FROM Game_Schedule WHERE game_id = (SELECT Game_ID FROM MajorPenalties WHERE ROWID = (SELECT MAX(ROWID) FROM MajorPenalties));`);
+    console.log('before ternary statement');
+    let startingDate = row ? row.date : '2021-01-01';
+    console.log('before starting date select');
+    const rows = await db.all(`SELECT game_id, data FROM Game_Schedule WHERE date >= '${startingDate}' AND data IS NOT NULL;`);
+    console.log('before for loop');
     for (i = 0; i < rows.length; i++) {
         const gameID = rows[i].game_id;
         let jsonData = JSON.parse(rows[i].data);
@@ -176,35 +183,11 @@ async function createPenaltyData(db) {
         const allMajors = allPlays.filter(play => 
             play.result.event === "Penalty" && play.result.penaltyMinutes > 4
         );
-        // Same as allMajors but without fight penalty duplicates.
-        // let uniqueMajors = [];
-        // // Checks if each penalty from allMajors is fighting. Pushes the non-fights into uniqueMajors. Uses intersect to compare fighting penalties by player ID and period time. Pushes unique fighting penalties into uniqueMajors.
-        // allMajors.forEach(play => {
-        //     if (play.result.secondaryType === "Fighting") {
-        //         if (!uniqueMajors.find(major => {
-        //             if (major.result.secondaryType !== "Fighting") {
-        //                 return false;
-        //             }
-        //             majorPlayers = major.players.map(player => player.id);
-        //             playPlayers = play.players.map(player => player.id);
-        //             samePlayers = intersect(majorPlayers, playPlayers).length === majorPlayers.length;
-        //             if (samePlayers && major.period === play.period && major.periodTime === play.periodTime) {
-        //                 return true;
-        //             }
-        //             return false;
-        //         })) {
-        //             // Pushes non-duplicate fighting majors
-        //             uniqueMajors.push(play);
-        //         }
-        //     } else {
-        //         // Pushes non-fighting majors
-        //         uniqueMajors.push(play);
-        //     }
-        // });
         // Inserts every item from allMajors into MajorPenalties table.
         for (j = 0; j < allMajors.length; j++) {
             // If two players are listed, runs an INSERT statement with columns for two players' data. Else, runs an INSERT statement for one player.
             if (allMajors[j].players[1]) {
+                console.log('before insert statement');
                 await db.run(`INSERT INTO MajorPenalties (
                     Game_ID,
                     Player_One_ID,
@@ -243,6 +226,7 @@ async function createPenaltyData(db) {
                     $desc: allMajors[j].result.description
                 });
             } else {
+                console.log('before insert statement 2');
                 await db.run(`INSERT INTO MajorPenalties (
                     Game_ID,
                     Player_One_ID,
@@ -282,7 +266,7 @@ async function createPenaltyData(db) {
 
 // Drops/Creates SaveGoalData table. Makes an array of parsed json data objects from Game_Schedule. For each object, extracts all plays that resulted in a save or goal. Inserts goalie and play info into SaveGoalData table.
 async function createSaveData(db) {
-    await db.run(`DROP TABLE IF EXISTS SaveGoalData;`);
+    // await db.run(`DROP TABLE IF EXISTS SaveGoalData;`);
     await db.run(`CREATE TABLE IF NOT EXISTS SaveGoalData (
         Game_ID INTEGER NOT NULL,
         Goalie_ID INTEGER NOT NULL,
@@ -290,7 +274,9 @@ async function createSaveData(db) {
         Event TEXT NOT NULL,
         Shot_Type TEXT NOT NULL
     );`);
-    const rows = await db.all(`SELECT game_id, data FROM Game_Schedule WHERE data IS NOT NULL;`);
+    let row = await db.get(`SELECT date FROM Game_Schedule WHERE game_id = (SELECT Game_ID FROM SaveGoalData WHERE ROWID = (SELECT MAX(ROWID) FROM SaveGoalData));`);
+    let startingDate = row ? row.date : '2021-01-01';
+    const rows = await db.all(`SELECT game_id, data FROM Game_Schedule WHERE data IS NOT NULL AND date >= '${startingDate}' AND game_id NOT IN (SELECT Game_ID FROM SaveGoalData);`);
     for (i = 0; i < rows.length; i++) {
         const gameID = rows[i].game_id;
         let jsonData = JSON.parse(rows[i].data);
@@ -304,7 +290,7 @@ async function createSaveData(db) {
         for (j = 0; j < allSavesGoals.length; j++) {
             const goalie = allSavesGoals[j].players.find(type => type.playerType === "Goalie");
             
-            await db.run(`INSERT INTO SaveGoalData (Game_ID, Goalie_ID,Name, Event, Shot_Type) VALUES ($game, $goalieID, $goalieName, $event, $shot)`, {
+            await db.run(`INSERT INTO SaveGoalData (Game_ID, Goalie_ID, Name, Event, Shot_Type) VALUES ($game, $goalieID, $goalieName, $event, $shot)`, {
                 $game: gameID,
                 $goalieID: goalie.player.id,
                 $goalieName: goalie.player.fullName,
@@ -321,7 +307,11 @@ console.log("createSaveData Finished");
 
 // Drops/Creates Players table. Makes and array of team ids from Teams table. Loops over array calling NHL roster API for each team. Inserts all players into Players table.
 async function getRosters(db){
-    await db.run(`DROP TABLE IF EXISTS Players;`);
+    let tableCount = await db.all(`SELECT name FROM sqlite_master WHERE type='table' AND name='Players';`);
+    if (tableCount.length) {
+        return;
+    }
+    // await db.run(`DROP TABLE IF EXISTS Players;`);
     await db.run(`CREATE TABLE IF NOT EXISTS Players (
         Player_ID INTEGER PRIMARY KEY,
         Player_Name TEXT,
@@ -358,7 +348,11 @@ async function getRosters(db){
 
 // Drops/Creates Goalies table. Extracts all goalies from Player table and inserts into Goalies table.
 async function createGoalieTable(db) {
-    await db.run(`DROP TABLE IF EXISTS Goalies;`);
+    let tableCount = await db.all(`SELECT name FROM sqlite_master WHERE type='table' AND name='Goalies';`);
+    if (tableCount.length) {
+        return;
+    }
+    // await db.run(`DROP TABLE IF EXISTS Goalies;`);
     await db.run(`CREATE TABLE IF NOT EXISTS Goalies (
         Player_ID INTEGER PRIMARY KEY,
         Player_Name TEXT NOT NULL,
@@ -400,7 +394,11 @@ async function populateGoalieTable(db) {
 
 // Drops/Creates Skaters table. Extracts all Forwards and Defensemen from Player table and inserts into Skaters table.
 async function createSkaterTable(db) {
-    await db.run(`DROP TABLE IF EXISTS Skaters;`);
+    let tableCount = await db.all(`SELECT name FROM sqlite_master WHERE type='table' AND name='Skaters';`);
+    if (tableCount.length) {
+        return;
+    }
+    // await db.run(`DROP TABLE IF EXISTS Skaters;`);
     await db.run(`CREATE TABLE IF NOT EXISTS Skaters (
         Player_ID INTEGER PRIMARY KEY,
         Player_Name TEXT NOT NULL,

@@ -8,32 +8,33 @@ const dbCalls = require('./repo2.js');
 
 app.use(cors());
 
-
-//look into keeping db connection alive, connection pooling?
+// Creates and/or updates database tables
 repo.openDB().then( async db => {
-    // await repo.createGameTable(db);
-    // console.log("createGameTable");
-    // await repo.gameDataAPI(db);
-    // console.log("gameDataAPI");
-    // await repo.createTeamData(db);
-    // console.log("createTeamData");
-    // await repo.combineTeamData(db);
-    // console.log("combineTeamData");
-    // await repo.createPenaltyData(db);
-    // console.log("createPenaltyData");
-    // await repo.createSaveData(db);
-    // console.log("createSaveData");
-    // await repo.getRosters(db);
-    // console.log("getRosters");
-    // await repo.createGoalieTable(db);
-    // console.log("createGoalieTable");
-    // await repo.populateGoalieTable(db);
-    // console.log("populateGoalieTable");
-    // await repo.createSkaterTable(db);
-    // console.log("createSkaterTable");
-    // await repo.populateSkaterTable(db);
-    // console.log("populateSkaterTable");
-    // console.log('All tables in database populated! :)');
+    await repo.initialTeamDatabase(db);
+    console.log("initialTeamDatabase");
+    await repo.createGameTable(db);
+    console.log("createGameTable");
+    await repo.gameDataAPI(db);
+    console.log("gameDataAPI");
+    await repo.createTeamData(db);
+    console.log("createTeamData");
+    await repo.combineTeamData(db);
+    console.log("combineTeamData");
+    await repo.createPenaltyData(db);
+    console.log("createPenaltyData");
+    await repo.createSaveData(db);
+    console.log("createSaveData");
+    await repo.getRosters(db);
+    console.log("getRosters");
+    await repo.createGoalieTable(db);
+    console.log("createGoalieTable");
+    await repo.populateGoalieTable(db);
+    console.log("populateGoalieTable");
+    await repo.createSkaterTable(db);
+    console.log("createSkaterTable");
+    await repo.populateSkaterTable(db);
+    console.log("populateSkaterTable");
+    console.log('All tables in database populated! :)');
 });
 
 
